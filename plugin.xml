@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin
     xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:rim="http://www.blackberry.com/ns/widgets"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    id="com.smartmobilesoftware.inappbilling"
-    version="3.0.0">
+    id="com.mohamnag.inappbilling"
+    version="0.0.1">
 
-    <name>Android InAppBilling</name>
-    <description>Use this In-app Billing plugin to sell digital goods, including one-time items and recurring subscriptions from your Cordova application. Main repo with full documentation located at: https://github.com/poiuytrez/AndroidInAppBilling</description>
-    
-    <author>Guillaume Charhon - Smart Mobile Software</author>
-    <keywords>billing,in-app,inapp,purchase,credit</keywords>
+    <name>InAppBilling</name>
+    <description>
+        Use this In-app Billing plugin to sell digital goods, including 
+        one-time items and recurring subscriptions from your Cordova 
+        application.
+    </description>
     <license>MIT License</license>
+    <keywords>billing,in-app,inapp,purchase,credit</keywords>
+    <author>Mohammad Naghavi - mohamnag@gmail.com</author>
+    
+    <!--
+    updated until here!
+    TODO update the rest when finished with rest of code.    
+    -->
 
     <engines>
       <engine name="cordova" version=">=3.0.0" />
@@ -48,9 +57,10 @@
 			<uses-permission android:name="com.android.vending.BILLING" />
         </config-file>
 
-        <!-- Cordova >= 3.0.0 -->
         <config-file target="res/xml/config.xml" parent="/*">
+            <!--TODO change this name if you want a unified service name for cordova.exec in both android and ios-->
             <feature name="InAppBillingPlugin">   
+                <!--TODO change this value when the name of java package/class has been changed-->
 				<param name="android-package" value="com.smartmobilesoftware.inappbilling.InAppBillingPlugin"/>
 			</feature>
         </config-file>
@@ -58,6 +68,7 @@
         <!-- In-app Billing Library -->
 		<source-file src="src/android/com/android/vending/billing/IInAppBillingService.aidl" target-dir="src/com/android/vending/billing" />
 
+        <!--TODO update all of these in case of package name change-->
         <!-- cordova plugin src files -->
         <source-file src="src/android/com/smartmobilesoftware/inappbilling/InAppBillingPlugin.java" target-dir="src/com/smartmobilesoftware/inappbilling" />
 

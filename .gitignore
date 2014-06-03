@@ -21,3 +21,4 @@ local.properties
 
 #UE Backup Files
 *.bak
+nbproject/
