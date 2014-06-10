@@ -1,15 +1,15 @@
-/** 
- * A plugin to enable iOS In-App Purchases.
- *
- * Copyright (c) Matt Kane 2011
- * Copyright (c) Guillaume Charhon 2012
- * Copyright (c) Jean-Christophe Hoelt 2013
- */
+/*
+    I'm adding an interface over the old iOS one as a quick fix to provide a 
+    unified interface for both iOS and android.
+    This shall be however fix later, by placing the exec calls inside the new
+    interface.
+*/
 
 var exec = function (methodName, options, success, error) {
     cordova.exec(success, error, "InAppPurchase", methodName, options);
 };
 
+// this is protects us from exceptions in external codes
 var protectCall = function (callback, context) {
     try {
         var args = Array.prototype.slice.call(arguments, 2); 
@@ -20,13 +20,189 @@ var protectCall = function (callback, context) {
     }
 };
 
-var InAppPurchase = function () {
+var log = function (msg) {
+    console.log("InAppBilling[js]: " + msg);
+};
+
+var InAppBilling = function () {
     this.options = {};
 };
 
-var noop = function () {};
+// this stores purchases and their callbacks as long as they are on the queue
+InAppBilling.prototype._queuedPurchases = {};
 
-var log = noop;
+// Merged with InAppPurchase.prototype.init
+//TODO: load skus (productIds) if provided, after setup before success call
+//TODO: match the arguments passed to success and fail callbacks with andorid
+InAppBilling.prototype.init = function (success, fail, options, skus) {
+    options || (options = {});
+
+    this.options = {
+        showLog: options.showLog || true
+    };
+
+    // maybe not needed any more, at best we would depend on storekit's functionality
+    // this.receiptForTransaction = {};
+    // this.receiptForProduct = {};
+    // if (window.localStorage && window.localStorage.sk_receiptForTransaction)
+    //     this.receiptForTransaction = JSON.parse(window.localStorage.sk_receiptForTransaction);
+    // if (window.localStorage && window.localStorage.sk_receiptForProduct)
+    //     this.receiptForProduct = JSON.parse(window.localStorage.sk_receiptForProduct);
+
+    // show log or mute the log
+    if (this.options.showLog) {
+        exec('debug', [], noop, noop);
+    }
+    else {
+        log = function() {};
+    }
+
+    var setupOk = function () {
+        log('setup ok');
+        protectCall(success, 'options.ready');
+
+        // Is there a reason why we wouldn't like to do this automatically?
+        // YES! it does ask the user for his password.
+        // that.restore();
+    };
+
+    var setupFailed = function () {
+        log('setup failed');
+        protectCall(fail, 'options.error', InAppPurchase.prototype.ERR_SETUP, 'Setup failed');
+    };
+
+    exec('setup', [], setupOk, setupFailed);
+};
+
+/* 
+    TODO: find/implement the right thing for iOS
+    I dont think this function matches the InAppPurchase.prototype.loadReceipts one. as that function
+    only tries to get receipt either from locally stored ones or from a URL.
+    we need probably something to refresh the receipt like SKReceiptRefreshRequest from 
+    https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StoreKitGuide/Chapters/Restoring.html#//apple_ref/doc/uid/TP40008267-CH8-SW9
+*/
+InAppBilling.prototype.getPurchases = function (success, fail) {
+    if (this.options.showLog) {
+        log('getPurchases called!');
+    }
+    return cordova.exec(success, fail, "InAppBillingPlugin", "getPurchases", ["null"]);
+};
+
+// Merged with InAppPurchase.prototype.purchase
+//TODO: sync fail and success callback params with android interface
+InAppBilling.prototype.buy = function (success, fail, productId) {
+    if (this.options.showLog) {
+        log('buy called!');
+    }
+
+    // Many people forget to load information about their products from apple's servers before allowing
+    // users to purchase them... leading them to spam us with useless issues and comments.
+    // Let's chase them down!
+    if ((!InAppBilling._productIds) || (InAppBilling._productIds.indexOf(productId) < 0)) {
+        log('Purchasing ' + productId + ' failed.  Ensure the product was loaded first!');
+        protectCall(fail, 'options.error', 'Trying to purchase an unknown product.', productId);
+        return;
+    }
+
+    // after we call the native code, we have a queue and we dont really know how to map callbacks to items 
+    // on the queue, for this reason we serialize the callbacks and put it together with productId on a cache.
+
+    // allow only ONE purchase request per product id and keep callbacks under prod id and wait until it is finished
+    if(InAppBilling._queuedPurchases.productId > 0) {
+        log(productId + ' is already on the purchase queue.');
+    }
+
+    // enqueued does not mean bought! here we shall keep success callback for later when transaction is updated
+    var purchaseEnqueued = function () {
+        log('Purchase enqueued ' + productId);
+        //here do nothing and keep the success callback for the time that queue is updated
+        //we also have to keep the fail callback for queue update
+        InAppBilling._queuedPurchases.productId = {
+            'success': success,
+            'fail': fail
+        };
+
+        //TODO: move this to after queue updated with success
+        // if (typeof options.purchaseEnqueued === 'function') {
+        //     protectCall(options.purchaseEnqueued, 'options.purchaseEnqueued', productId);
+        // }
+    };
+
+    // fail is fail, even not being able to put on queue! 
+    var purchaseEnqueueFailed = function () {
+        var msg = 'Enqueuing ' + productId + ' failed';
+        log(msg);
+        if (typeof options.error === 'function') {
+            protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_PURCHASE, productId);
+        }
+    };
+    return exec('purchase', [productId, 1], purchaseEnqueued, purchaseEnqueueFailed);    
+};
+
+// on iOS, this does exactly what buy does!
+InAppBilling.prototype.subscribe = function (success, fail, productId) {
+    if (this.options.showLog) {
+        log('subscribe called!');
+    }
+    return InAppBilling.buy(success, fail, productId);
+};
+
+////////// HERE!
+InAppBilling.prototype.consumePurchase = function (success, fail, productId) {
+    if (this.options.showLog) {
+        log('consumePurchase called!');
+    }
+    return cordova.exec(success, fail, "InAppBillingPlugin", "consumePurchase", [productId]);
+};
+
+InAppBilling.prototype.getAvailableProducts = function (success, fail) {
+    if (this.options.showLog) {
+        log('getAvailableProducts called!');
+    }
+    return cordova.exec(success, fail, "InAppBillingPlugin", "getAvailableProducts", ["null"]);
+};
+
+InAppBilling.prototype.getProductDetails = function (success, fail, skus) {
+    if (this.options.showLog) {
+        log('getProductDetails called!');
+    }
+    
+    if (typeof skus === "string") {
+        skus = [skus];
+    }
+    if (!skus.length) {
+        // Empty array, nothing to do.
+        return;
+    }else {
+        if (typeof skus[0] !== 'string') {
+            var msg = 'invalid productIds: ' + JSON.stringify(skus);
+            log(msg);
+            fail(msg);
+            return;
+        }
+        log('load ' + JSON.stringify(skus));
+
+        return cordova.exec(success, fail, "InAppBillingPlugin", "getProductDetails", [skus]);
+    }
+};
+
+module.exports = new InAppBilling();
+
+// ========= from here on, we have the original iOS JS interface. some parts are commented out 
+// ========= in favour of the new ones before.
+
+/** 
+ * A plugin to enable iOS In-App Purchases.
+ *
+ * Copyright (c) Matt Kane 2011
+ * Copyright (c) Guillaume Charhon 2012
+ * Copyright (c) Jean-Christophe Hoelt 2013
+ */
+
+
+var InAppPurchase = function () {
+    this.options = {};
+};
 
 // Error codes
 // (keep synchronized with InAppPurchase.m)
@@ -41,90 +217,7 @@ InAppPurchase.prototype.ERR_PAYMENT_INVALID     = ERROR_CODES_BASE + 7;
 InAppPurchase.prototype.ERR_PAYMENT_NOT_ALLOWED = ERROR_CODES_BASE + 8;
 InAppPurchase.prototype.ERR_UNKNOWN             = ERROR_CODES_BASE + 10;
 
-InAppPurchase.prototype.init = function (options) {
-    this.options = {
-        error:    options.error    || noop,
-        ready:    options.ready    || noop,
-        purchase: options.purchase || noop,
-        purchaseEnqueued: options.purchaseEnqueued || noop,
-        finish:   options.finish   || noop,
-        restore:  options.restore  || noop,
-        restoreFailed:     options.restoreFailed    || noop,
-        restoreCompleted:  options.restoreCompleted || noop
-    };
 
-    this.receiptForTransaction = {};
-    this.receiptForProduct = {};
-    if (window.localStorage && window.localStorage.sk_receiptForTransaction)
-        this.receiptForTransaction = JSON.parse(window.localStorage.sk_receiptForTransaction);
-    if (window.localStorage && window.localStorage.sk_receiptForProduct)
-        this.receiptForProduct = JSON.parse(window.localStorage.sk_receiptForProduct);
-
-    if (options.debug) {
-        exec('debug', [], noop, noop);
-        log = function (msg) {
-            console.log("InAppPurchase[js]: " + msg);
-        };
-    }
-
-    if (options.noAutoFinish) {
-        exec('noAutoFinish', [], noop, noop);
-    }
-
-    var that = this;
-    var setupOk = function () {
-        log('setup ok');
-        protectCall(that.options.ready, 'options.ready');
-
-        // Is there a reason why we wouldn't like to do this automatically?
-        // YES! it does ask the user for his password.
-        // that.restore();
-    };
-    var setupFailed = function () {
-        log('setup failed');
-        protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_SETUP, 'Setup failed');
-    };
-
-    exec('setup', [], setupOk, setupFailed);
-};
-
-/**
- * Makes an in-app purchase. 
- * 
- * @param {String} productId The product identifier. e.g. "com.example.MyApp.myproduct"
- * @param {int} quantity 
- */
-InAppPurchase.prototype.purchase = function (productId, quantity) {
-	quantity = (quantity|0) || 1;
-    var options = this.options;
-
-    // Many people forget to load information about their products from apple's servers before allowing
-    // users to purchase them... leading them to spam us with useless issues and comments.
-    // Let's chase them down!
-    if ((!InAppPurchase._productIds) || (InAppPurchase._productIds.indexOf(productId) < 0)) {
-        var msg = 'Purchasing ' + productId + ' failed.  Ensure the product was loaded first with storekit.load(...)!';
-        log(msg);
-        if (typeof options.error === 'function') {
-            protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_PURCHASE, 'Trying to purchase a unknown product.', productId, quantity);
-        }
-        return;
-    }
-
-    var purchaseOk = function () {
-        log('Purchased ' + productId);
-        if (typeof options.purchaseEnqueued === 'function') {
-            protectCall(options.purchaseEnqueued, 'options.purchaseEnqueued', productId, quantity);
-        }
-    };
-    var purchaseFailed = function () {
-        var msg = 'Purchasing ' + productId + ' failed';
-        log(msg);
-        if (typeof options.error === 'function') {
-            protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_PURCHASE, msg, productId, quantity);
-        }
-    };
-    return exec('purchase', [productId, quantity], purchaseOk, purchaseFailed);
-};
 
 /**
  * Asks the payment queue to restore previously completed purchases.
