@@ -3,7 +3,7 @@ I'm intending to merge these two cordova plugins into one, which can be simply u
 1. https://github.com/poiuytrez/AndroidInAppBilling
 2. https://github.com/j3k0/PhoneGap-InAppPurchase-iOS
 
-Fill free to contribute, specially because I'm not really familiar with Objective-C.
+Fill free to contribute, specially because I'm not really familiar with Objective-C, **there a huge help is needed**!
 
 I prefered the android plugin style more mainly because:
 * it is more similar to the promise pattern in JavaScript than the other
@@ -23,6 +23,10 @@ There is a big difference between how Play Store handles the in-app purchasing a
 
 We have to provide a unified way for all platforms, this means many differences and extra features has to be put out. You have the good common functionalities.
 
+## Roadmap
+1. Make a unified interface in the easiest way, only to make it usable in both iOS and Android easily
+2. On android src, bring all the errors to JS level, in order to make it easier to pass it to UI or handle it in a customized way
+3. On iOS, change some of the functionality from JS level to native, in order to have a more stable functionality
 
 MIT License
 ----------------
