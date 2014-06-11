@@ -42,7 +42,7 @@ As Play Store finishes the transactions on its own, this additional functionalit
 ### Buy flow limits on iOS
 Consider if your app launches multiple purchases for one product, on android it is easy to track which callback belongs to which purchase flow, becuase it is a synced action, but on iOS this is kind of impossible. For this reason, this plugin limits one purchase flow per product on iOS until that flow is finished (either success or fail). This should not really impact many applications as this is an extreme case.
 
-Another limit is the quantity of purchase which is not supported on iOS, therefore is not also supported in this plugin.
+Another limit is the quantity of purchase which is not supported on Play Store, therefore is not also supported in this plugin.
 
 ## Roadmap
 1. Make a unified interface in the easiest way, only to make it usable in both iOS and Android easily
