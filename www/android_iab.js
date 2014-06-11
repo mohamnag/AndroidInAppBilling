@@ -1,3 +1,25 @@
+/**
+ * This file implements the same JS interface for android as for iOS one but with 
+ * android native code behind.
+ */
+
+
+/**
+ * Error codes returned to callback functions in different situations.
+ * (keep synchronized with InAppPurchase.m, InAppBillingPlugin.java and ios_iab.js)
+ * 
+ */
+var ERROR_CODES_BASE = 4983497;
+InAppBilling.prototype.ERR_SETUP               = ERROR_CODES_BASE + 1;
+InAppBilling.prototype.ERR_LOAD                = ERROR_CODES_BASE + 2;
+InAppBilling.prototype.ERR_PURCHASE            = ERROR_CODES_BASE + 3;
+InAppBilling.prototype.ERR_LOAD_RECEIPTS       = ERROR_CODES_BASE + 4;
+InAppBilling.prototype.ERR_CLIENT_INVALID      = ERROR_CODES_BASE + 5;
+InAppBilling.prototype.ERR_PAYMENT_CANCELLED   = ERROR_CODES_BASE + 6;
+InAppBilling.prototype.ERR_PAYMENT_INVALID     = ERROR_CODES_BASE + 7;
+InAppBilling.prototype.ERR_PAYMENT_NOT_ALLOWED = ERROR_CODES_BASE + 8;
+InAppBilling.prototype.ERR_UNKNOWN             = ERROR_CODES_BASE + 10;
+
 var log = function (msg) {
     console.log("InAppBilling[js]: " + msg);
 };

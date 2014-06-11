@@ -16,18 +16,13 @@
     <keywords>billing,in-app,inapp,purchase,credit</keywords>
     <author>Mohammad Naghavi - mohamnag@gmail.com</author>
     
-    <!--
-    updated until here!
-    TODO update the rest when finished with rest of code.    
-    -->
-
     <engines>
         <engine name="cordova" version=">=3.0.0" />
     </engines>
 	
     <!-- ios -->
     <platform name="ios">
-        <js-module src="www/InAppPurchase.js" name="InAppPurchase">
+        <js-module src="www/ios_iab.js" name="InAppBilling">
             <clobbers target="inappbilling" />
         </js-module>
                             
@@ -48,7 +43,7 @@
 
     <!-- android -->
     <platform name="android">
-        <js-module src="www/inappbilling.js" name="InAppBillingPlugin">
+        <js-module src="www/android_iab.js" name="InAppBilling">
             <clobbers target="inappbilling" />
         </js-module>
 
@@ -56,6 +51,13 @@
             <!-- InApp Billing Permission -->
             <uses-permission android:name="com.android.vending.BILLING" />
         </config-file>
+
+<!--
+updated until here!
+TODO update the rest when finished with rest of code.    
+
+http://cordova.apache.org/docs/en/3.4.0/plugin_ref_spec.md
+-->
 
         <config-file target="res/xml/config.xml" parent="/*">
             <!--TODO change this name if you want a unified service name for cordova.exec in both android and ios-->

@@ -1,12 +1,13 @@
-/*
-    I'm adding an interface over the old iOS one as a quick fix to provide a 
-    unified interface for both iOS and android.
-    This shall be however fix later, by placing the exec calls inside the new
-    interface.
-*/
+/**
+ * This file implements the same JS interface for iOS as for android one but with 
+ * iOS native code behind.
+ */
 
-// Error codes
-// (keep synchronized with InAppPurchase.m)
+/**
+ * Error codes returned to callback functions in different situations.
+ * (keep synchronized with InAppPurchase.m, InAppBillingPlugin.java and ios_iab.js)
+ * 
+ */
 var ERROR_CODES_BASE = 4983497;
 InAppBilling.prototype.ERR_SETUP               = ERROR_CODES_BASE + 1;
 InAppBilling.prototype.ERR_LOAD                = ERROR_CODES_BASE + 2;
@@ -18,9 +19,8 @@ InAppBilling.prototype.ERR_PAYMENT_INVALID     = ERROR_CODES_BASE + 7;
 InAppBilling.prototype.ERR_PAYMENT_NOT_ALLOWED = ERROR_CODES_BASE + 8;
 InAppBilling.prototype.ERR_UNKNOWN             = ERROR_CODES_BASE + 10;
 
-var exec = function (methodName, options, success, error) {
-    cordova.exec(success, error, "InAppPurchase", methodName, options);
-};
+// not sure if this is needed, if cordova callbacks can handle undefined, then this shall be removed!
+var noop = function() {};
 
 // this is protects us from exceptions in external codes
 var protectCall = function (callback, context) {
@@ -66,10 +66,10 @@ InAppBilling.prototype.init = function (success, fail, options, skus) {
 
     // show log or mute the log
     if (this.options.showLog) {
-        exec('debug', [], noop, noop);
+        cordova.exec(noop, noop, "InAppPurchase", 'debug', []);
     }
     else {
-        log = function() {};
+        log = noop;
     }
 
     var setupOk = function () {
@@ -86,7 +86,7 @@ InAppBilling.prototype.init = function (success, fail, options, skus) {
         protectCall(fail, 'options.error', InAppBilling.prototype.ERR_SETUP, 'Setup failed');
     };
 
-    exec('setup', [], setupOk, setupFailed);
+    cordova.exec(setupOk, setupFailed, "InAppPurchase", 'setup', []);
 };
 
 /**
@@ -118,7 +118,7 @@ InAppBilling.prototype.getPurchases = function (success, fail) {
         protectCall(fail, 'options.error', InAppBilling.prototype.ERR_LOAD_RECEIPTS, msg);
     };
 
-    exec('appStoreReceipt', [], loaded, error);
+    cordova.exec(loaded, error, "InAppPurchase", 'appStoreReceipt', []);    
 };
 
 // Merged with InAppPurchase.prototype.purchase
@@ -166,7 +166,8 @@ InAppBilling.prototype.buy = function (success, fail, productId) {
         log(msg);
         protectCall(fail, 'options.error', InAppBilling.prototype.ERR_PURCHASE, productId);
     };
-    return exec('purchase', [productId, 1], purchaseEnqueued, purchaseEnqueueFailed);    
+
+    cordova.exec(purchaseEnqueued, purchaseEnqueueFailed, "InAppPurchase", 'purchase', [productId, 1]);
 };
 
 // on iOS, this does exactly what buy does!
@@ -197,7 +198,7 @@ InAppBilling.prototype.restore = function(success, fail, finish) {
         'fail': fail,
         'finish': finish
     };
-    return exec('restoreCompletedTransactions', []);
+    cordova.exec(noop, noop, "InAppPurchase", 'restoreCompletedTransactions', []);
 };
 
 /**
@@ -278,7 +279,7 @@ InAppBilling.prototype.getProductDetails = function (success, fail, productIds) 
         };
 
         InAppBilling._productIds = productIds;
-        exec('load', [productIds], loadOk, loadFailed);
+        cordova.exec(loadOk, loadFailed, "InAppPurchase", 'load', [productIds]);
     }
 };
 
