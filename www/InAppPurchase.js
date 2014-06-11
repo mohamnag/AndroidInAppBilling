@@ -5,6 +5,19 @@
     interface.
 */
 
+// Error codes
+// (keep synchronized with InAppPurchase.m)
+var ERROR_CODES_BASE = 4983497;
+InAppBilling.prototype.ERR_SETUP               = ERROR_CODES_BASE + 1;
+InAppBilling.prototype.ERR_LOAD                = ERROR_CODES_BASE + 2;
+InAppBilling.prototype.ERR_PURCHASE            = ERROR_CODES_BASE + 3;
+InAppBilling.prototype.ERR_LOAD_RECEIPTS       = ERROR_CODES_BASE + 4;
+InAppBilling.prototype.ERR_CLIENT_INVALID      = ERROR_CODES_BASE + 5;
+InAppBilling.prototype.ERR_PAYMENT_CANCELLED   = ERROR_CODES_BASE + 6;
+InAppBilling.prototype.ERR_PAYMENT_INVALID     = ERROR_CODES_BASE + 7;
+InAppBilling.prototype.ERR_PAYMENT_NOT_ALLOWED = ERROR_CODES_BASE + 8;
+InAppBilling.prototype.ERR_UNKNOWN             = ERROR_CODES_BASE + 10;
+
 var exec = function (methodName, options, success, error) {
     cordova.exec(success, error, "InAppPurchase", methodName, options);
 };
@@ -30,6 +43,8 @@ var InAppBilling = function () {
 
 // this stores purchases and their callbacks as long as they are on the queue
 InAppBilling.prototype._queuedPurchases = {};
+// this stores callbacks for restore function, until restore process is finished
+InAppBilling.prototype._restoreCallbacks = {}
 
 // Merged with InAppPurchase.prototype.init
 //TODO: load skus (productIds) if provided, after setup before success call
@@ -68,24 +83,42 @@ InAppBilling.prototype.init = function (success, fail, options, skus) {
 
     var setupFailed = function () {
         log('setup failed');
-        protectCall(fail, 'options.error', InAppPurchase.prototype.ERR_SETUP, 'Setup failed');
+        protectCall(fail, 'options.error', InAppBilling.prototype.ERR_SETUP, 'Setup failed');
     };
 
     exec('setup', [], setupOk, setupFailed);
 };
 
-/* 
-    TODO: find/implement the right thing for iOS
-    I dont think this function matches the InAppPurchase.prototype.loadReceipts one. as that function
-    only tries to get receipt either from locally stored ones or from a URL.
-    we need probably something to refresh the receipt like SKReceiptRefreshRequest from 
-    https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StoreKitGuide/Chapters/Restoring.html#//apple_ref/doc/uid/TP40008267-CH8-SW9
-*/
+/**
+ * This will return all the receipts for already bought items.
+ * 
+ * @param  {[type]} success
+ * @param  {[type]} fail
+ * @return {[type]}
+ */
 InAppBilling.prototype.getPurchases = function (success, fail) {
+    /* 
+        TODO: find/implement the right thing for iOS
+        I dont think this function matches the InAppPurchase.prototype.loadReceipts one. as that function
+        only tries to get receipt either from locally stored ones or from a URL.
+        we need probably something to refresh the receipt like SKReceiptRefreshRequest from 
+        https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StoreKitGuide/Chapters/Restoring.html#//apple_ref/doc/uid/TP40008267-CH8-SW9
+    */
     if (this.options.showLog) {
         log('getPurchases called!');
     }
-    return cordova.exec(success, fail, "InAppBillingPlugin", "getPurchases", ["null"]);
+    
+    var loaded = function (base64Receipt) {
+        protectCall(success, 'loadReceipts.callback', base64Receipt);
+    };
+
+    var error = function (errMessage) {
+        var msg = 'Failed to load receipt: ' + errMessage;
+        log(msg);
+        protectCall(fail, 'options.error', InAppBilling.prototype.ERR_LOAD_RECEIPTS, msg);
+    };
+
+    exec('appStoreReceipt', [], loaded, error);
 };
 
 // Merged with InAppPurchase.prototype.purchase
@@ -106,35 +139,32 @@ InAppBilling.prototype.buy = function (success, fail, productId) {
 
     // after we call the native code, we have a queue and we dont really know how to map callbacks to items 
     // on the queue, for this reason we serialize the callbacks and put it together with productId on a cache.
-
-    // allow only ONE purchase request per product id and keep callbacks under prod id and wait until it is finished
-    if(InAppBilling._queuedPurchases.productId > 0) {
+    // current solution:
+    //      allow only ONE purchase request per product id and keep callbacks under prod id and wait until it 
+    //      is finished
+    // IF you know a better way to attach these callbacks to this specific purchase, then help improve it!
+    if(typeof InAppBilling._queuedPurchases.productId !== 'undefined') {
         log(productId + ' is already on the purchase queue.');
+        protectCall(fail, 'options.error', InAppBilling.prototype.ERR_PURCHASE, productId);
+        return;
     }
 
     // enqueued does not mean bought! here we shall keep success callback for later when transaction is updated
     var purchaseEnqueued = function () {
         log('Purchase enqueued ' + productId);
-        //here do nothing and keep the success callback for the time that queue is updated
-        //we also have to keep the fail callback for queue update
+        // here do nothing and keep the success callback for the time that queue is updated
+        // we also have to keep the fail callback for queue update
         InAppBilling._queuedPurchases.productId = {
             'success': success,
             'fail': fail
         };
-
-        //TODO: move this to after queue updated with success
-        // if (typeof options.purchaseEnqueued === 'function') {
-        //     protectCall(options.purchaseEnqueued, 'options.purchaseEnqueued', productId);
-        // }
     };
 
     // fail is fail, even not being able to put on queue! 
     var purchaseEnqueueFailed = function () {
         var msg = 'Enqueuing ' + productId + ' failed';
         log(msg);
-        if (typeof options.error === 'function') {
-            protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_PURCHASE, productId);
-        }
+        protectCall(fail, 'options.error', InAppBilling.prototype.ERR_PURCHASE, productId);
     };
     return exec('purchase', [productId, 1], purchaseEnqueued, purchaseEnqueueFailed);    
 };
@@ -147,86 +177,43 @@ InAppBilling.prototype.subscribe = function (success, fail, productId) {
     return InAppBilling.buy(success, fail, productId);
 };
 
-////////// HERE!
-InAppBilling.prototype.consumePurchase = function (success, fail, productId) {
-    if (this.options.showLog) {
-        log('consumePurchase called!');
-    }
-    return cordova.exec(success, fail, "InAppBillingPlugin", "consumePurchase", [productId]);
-};
-
-InAppBilling.prototype.getAvailableProducts = function (success, fail) {
-    if (this.options.showLog) {
-        log('getAvailableProducts called!');
-    }
-    return cordova.exec(success, fail, "InAppBillingPlugin", "getAvailableProducts", ["null"]);
-};
-
-InAppBilling.prototype.getProductDetails = function (success, fail, skus) {
-    if (this.options.showLog) {
-        log('getProductDetails called!');
-    }
-    
-    if (typeof skus === "string") {
-        skus = [skus];
-    }
-    if (!skus.length) {
-        // Empty array, nothing to do.
-        return;
-    }else {
-        if (typeof skus[0] !== 'string') {
-            var msg = 'invalid productIds: ' + JSON.stringify(skus);
-            log(msg);
-            fail(msg);
-            return;
-        }
-        log('load ' + JSON.stringify(skus));
-
-        return cordova.exec(success, fail, "InAppBillingPlugin", "getProductDetails", [skus]);
-    }
-};
-
-module.exports = new InAppBilling();
-
-// ========= from here on, we have the original iOS JS interface. some parts are commented out 
-// ========= in favour of the new ones before.
-
-/** 
- * A plugin to enable iOS In-App Purchases.
+/**
+ * iOS ONLY: try not to use it, however this is a must to have for iTunes.
+ * Asks store to re-queue previously processed transaction.
  *
- * Copyright (c) Matt Kane 2011
- * Copyright (c) Guillaume Charhon 2012
- * Copyright (c) Jean-Christophe Hoelt 2013
+ * This is the exceptional one to have three callbacks. Additional one is 
+ * needed if restoration does really activate no transactions (user did not 
+ * have bought anything).
+ * 
+ * @param  {[type]} success
+ * @param  {[type]} fail
+ * @param  {[type]} finish
+ * @return {[type]}
  */
-
-
-var InAppPurchase = function () {
-    this.options = {};
+InAppBilling.prototype.restore = function(success, fail, finish) {
+    // we store the callbacks for later call
+    InAppBilling._restoreCallbacks = {
+        'success': success,
+        'fail': fail,
+        'finish': finish
+    };
+    return exec('restoreCompletedTransactions', []);
 };
-
-// Error codes
-// (keep synchronized with InAppPurchase.m)
-var ERROR_CODES_BASE = 4983497;
-InAppPurchase.prototype.ERR_SETUP               = ERROR_CODES_BASE + 1;
-InAppPurchase.prototype.ERR_LOAD                = ERROR_CODES_BASE + 2;
-InAppPurchase.prototype.ERR_PURCHASE            = ERROR_CODES_BASE + 3;
-InAppPurchase.prototype.ERR_LOAD_RECEIPTS       = ERROR_CODES_BASE + 4;
-InAppPurchase.prototype.ERR_CLIENT_INVALID      = ERROR_CODES_BASE + 5;
-InAppPurchase.prototype.ERR_PAYMENT_CANCELLED   = ERROR_CODES_BASE + 6;
-InAppPurchase.prototype.ERR_PAYMENT_INVALID     = ERROR_CODES_BASE + 7;
-InAppPurchase.prototype.ERR_PAYMENT_NOT_ALLOWED = ERROR_CODES_BASE + 8;
-InAppPurchase.prototype.ERR_UNKNOWN             = ERROR_CODES_BASE + 10;
-
-
 
 /**
- * Asks the payment queue to restore previously completed purchases.
- * The restored transactions are passed to the onRestored callback, so make sure you define a handler for that first.
- * 
+ * This is called from native!
  */
-InAppPurchase.prototype.restore = function() {
-    this.needRestoreNotification = true;
-    return exec('restoreCompletedTransactions', []);
+InAppBilling.prototype.restoreCompletedTransactionsFinished = function () {
+    protectCall(InAppBilling._restoreCallbacks.finish, 'options.restoreCompleted');
+    InAppBilling._restoreCallbacks = {};
+};
+
+/**
+ * This is called from native!
+ */
+InAppBilling.prototype.restoreCompletedTransactionsFailed = function (errorCode) {
+    protectCall(InAppBilling._restoreCallbacks.fail, 'options.restoreFailed', errorCode);
+    InAppBilling._restoreCallbacks = {};
 };
 
 /**
@@ -253,24 +240,27 @@ InAppPurchase.prototype.restore = function() {
  *  and invalidProductIds receives an array of product identifier
  *  strings which were rejected by the app store.
  */
-InAppPurchase.prototype.load = function (productIds, callback) {
+// merged with InAppPurchase.prototype.load
+InAppBilling.prototype.getProductDetails = function (success, fail, productIds) {
     var options = this.options;
     if (typeof productIds === "string") {
         productIds = [productIds];
     }
+
     if (!productIds) {
         // Empty array, nothing to do.
-        protectCall(callback, 'load.callback', [], []);
+        protectCall(success, 'load.callback', [], []);
     }
+
     else if (!productIds.length) {
         // Empty array, nothing to do.
-        protectCall(callback, 'load.callback', [], []);
+        return;
     }
     else {
         if (typeof productIds[0] !== 'string') {
             var msg = 'invalid productIds given to store.load: ' + JSON.stringify(productIds);
             log(msg);
-            protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_LOAD, msg);
+            protectCall(fail, 'options.error', InAppBilling.prototype.ERR_LOAD, msg);
             return;
         }
         log('load ' + JSON.stringify(productIds));
@@ -279,104 +269,111 @@ InAppPurchase.prototype.load = function (productIds, callback) {
             var valid = array[0];
             var invalid = array[1];
             log('load ok: { valid:' + JSON.stringify(valid) + ' invalid:' + JSON.stringify(invalid) + ' }');
-            protectCall(callback, 'load.callback', valid, invalid);
-        };
-        var loadFailed = function (errMessage) {
-            log('load failed: ' + errMessage);
-            protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_LOAD, 'Failed to load product data: ' + errMessage);
+            protectCall(success, 'load.callback', valid, invalid);
         };
 
-        InAppPurchase._productIds = productIds;
+        var loadFailed = function (errMessage) {
+            log('load failed: ' + errMessage);
+            protectCall(fail, 'options.error', InAppBilling.prototype.ERR_LOAD, 'Failed to load product data: ' + errMessage);
+        };
+
+        InAppBilling._productIds = productIds;
         exec('load', [productIds], loadOk, loadFailed);
     }
 };
 
 /**
- * Finish an unfinished transaction.
- *
- * @param {String} transactionId
- *    Identifier of the transaction to finish.
- *
- * You have to call this method manually when using the noAutoFinish option.
+ * This is called from native!
  */
-InAppPurchase.prototype.finish = function (transactionId) {
-    exec('finishTransaction', [transactionId], noop, noop);
-};
-
-/* This is called from native.*/
-InAppPurchase.prototype.updatedTransactionCallback = function (state, errorCode, errorText, transactionIdentifier, productId, transactionReceipt) {
+InAppBilling.prototype.updatedTransactionCallback = function (state, errorCode, errorText, transactionIdentifier, productId, transactionReceipt) {
+    //TODO: remove this and pass on the receipt directly to the callback! complete app's receipt can be obtained by calling getPurchases
     if (transactionReceipt) {
-        this.receiptForProduct[productId] = transactionReceipt;
-        this.receiptForTransaction[transactionIdentifier] = transactionReceipt;
-        if (window.localStorage) {
-            window.localStorage.sk_receiptForProduct = JSON.stringify(this.receiptForProduct);
-            window.localStorage.sk_receiptForTransaction = JSON.stringify(this.receiptForTransaction);
-        }
+        InAppBilling.receiptForProduct[productId] = transactionReceipt;
+        InAppBilling.receiptForTransaction[transactionIdentifier] = transactionReceipt;
     }
-	switch(state) {
-		case "PaymentTransactionStatePurchased":
-            protectCall(this.options.purchase, 'options.purchase', transactionIdentifier, productId);
-			return; 
-		case "PaymentTransactionStateFailed":
-            protectCall(this.options.error, 'options.error', errorCode, errorText);
-			return;
-		case "PaymentTransactionStateRestored":
-            protectCall(this.options.restore, 'options.restore', transactionIdentifier, productId);
-			return;
-		case "PaymentTransactionStateFinished":
-            protectCall(this.options.finish, 'options.finish', transactionIdentifier, productId);
-			return;
-	}
+
+    switch(state) {
+        case "PaymentTransactionStatePurchased":
+            // nothing to do, we will inform success after FINISHING the transaction
+            return; 
+
+        case "PaymentTransactionStateFailed":
+            if(typeof InAppBilling._queuedPurchases.productId !== 'undefined') {
+                protectCall(
+                    InAppBilling._queuedPurchases.productId.fail, 
+                    'options.purchase', 
+                    transactionIdentifier, 
+                    productId
+                );
+            }
+            delete InAppBilling._queuedPurchases.productId;
+            return;
+
+        case "PaymentTransactionStateRestored":
+            protectCall(InAppBilling._restoreCallbacks.finish, 'options.restoreCompleted', transactionIdentifier, productId);
+            return;
+
+        case "PaymentTransactionStateFinished":
+            if(typeof InAppBilling._queuedPurchases.productId !== 'undefined') {
+                protectCall(
+                    InAppBilling._queuedPurchases.productId.success, 
+                    'options.purchase', 
+                    transactionIdentifier, 
+                    productId
+                );
+            }
+            delete InAppBilling._queuedPurchases.productId;
+            return;
+    }
 };
 
-InAppPurchase.prototype.restoreCompletedTransactionsFinished = function () {
-    if (this.needRestoreNotification)
-        delete this.needRestoreNotification;
-    else
-        return;
-    protectCall(this.options.restoreCompleted, 'options.restoreCompleted');
+/**
+ * This consumes a bought product.
+ * 
+ * @param  {[type]} success
+ * @param  {[type]} fail
+ * @param  {[type]} productId
+ * @return {[type]}
+ */
+InAppBilling.prototype.consumePurchase = function (success, fail, productId) {
+    if (this.options.showLog) {
+        log('consumePurchase called!');
+    }
+
+    //TODO: implement it for iOS!
+    // return cordova.exec(success, fail, "InAppBillingPlugin", "consumePurchase", [productId]);
 };
 
-InAppPurchase.prototype.restoreCompletedTransactionsFailed = function (errorCode) {
-    if (this.needRestoreNotification)
-        delete this.needRestoreNotification;
-    else
-        return;
-    protectCall(this.options.restoreFailed, 'options.restoreFailed', errorCode);
+/**
+ * This will return the list of localized products information which are already loaded in the application.
+ * 
+ * @param  {[type]} success
+ * @param  {[type]} fail
+ * @return {[type]}
+ */
+InAppBilling.prototype.getAvailableProducts = function (success, fail) {
+    if (this.options.showLog) {
+        log('getAvailableProducts called!');
+    }
+
+    //TODO: implement this for iOS!
+    // return cordova.exec(success, fail, "InAppBillingPlugin", "getAvailableProducts", ["null"]);
 };
 
-InAppPurchase.prototype.loadReceipts = function (callback) {
+module.exports = new InAppBilling();
 
-    var that = this;
-    that.appStoreReceipt = null;
+// ========= from here on, we have the original iOS JS interface. some parts are commented out 
+// ========= in favour of the new ones before.
 
-    var loaded = function (base64) {
-        that.appStoreReceipt = base64;
-        callCallback();
-    };
+/** 
+ * A plugin to enable iOS In-App Purchases.
+ *
+ * Copyright (c) Matt Kane 2011
+ * Copyright (c) Guillaume Charhon 2012
+ * Copyright (c) Jean-Christophe Hoelt 2013
+ */
 
-    var error = function (errMessage) {
-        log('load failed: ' + errMessage);
-        protectCall(options.error, 'options.error', InAppPurchase.prototype.ERR_LOAD_RECEIPTS, 'Failed to load receipt: ' + errMessage);
-    };
-
-    var callCallback = function () {
-        if (callback) {
-            protectCall(callback, 'loadReceipts.callback', {
-                appStoreReceipt: that.appStoreReceipt,
-                forTransaction: function (transactionId) {
-                    return that.receiptForTransaction[transactionId] || null;
-                },
-                forProduct:     function (productId) {
-                    return that.receiptForProduct[productId] || null;
-                }
-            });
-        }
-    };
-
-    exec('appStoreReceipt', [], loaded, error);
-};
-
+//TODO: impelement receipt verification (automatically) for iOS too
 /*
 InAppPurchase.prototype.verifyReceipt = function (success, error) {
     var receiptOk = function () {
@@ -393,48 +390,49 @@ InAppPurchase.prototype.verifyReceipt = function (success, error) {
 };
 */
 
-/*
- * This queue stuff is here because we may be sent events before listeners have been registered. This is because if we have 
- * incomplete transactions when we quit, the app will try to run these when we resume. If we don't register to receive these
- * right away then they may be missed. As soon as a callback has been registered then it will be sent any events waiting
- * in the queue.
- */
-InAppPurchase.prototype.runQueue = function () {
-	if(!this.eventQueue.length || (!this.onPurchased && !this.onFailed && !this.onRestored)) {
-		return;
-	}
-	var args;
-	/* We can't work directly on the queue, because we're pushing new elements onto it */
-	var queue = this.eventQueue.slice();
-	this.eventQueue = [];
-    args = queue.shift();
-	while (args) {
-		this.updatedTransactionCallback.apply(this, args);
-        args = queue.shift();
-	}
-	if (!this.eventQueue.length) {	
-		this.unWatchQueue();
-	}
-};
+// Not really sure if they are used or not, commenting out!
+// /*
+//  * This queue stuff is here because we may be sent events before listeners have been registered. This is because if we have 
+//  * incomplete transactions when we quit, the app will try to run these when we resume. If we don't register to receive these
+//  * right away then they may be missed. As soon as a callback has been registered then it will be sent any events waiting
+//  * in the queue.
+//  */
+// InAppPurchase.prototype.runQueue = function () {
+// 	if(!this.eventQueue.length || (!this.onPurchased && !this.onFailed && !this.onRestored)) {
+// 		return;
+// 	}
+// 	var args;
+// 	/* We can't work directly on the queue, because we're pushing new elements onto it */
+// 	var queue = this.eventQueue.slice();
+// 	this.eventQueue = [];
+//     args = queue.shift();
+// 	while (args) {
+// 		this.updatedTransactionCallback.apply(this, args);
+//         args = queue.shift();
+// 	}
+// 	if (!this.eventQueue.length) {	
+// 		this.unWatchQueue();
+// 	}
+// };
 
-InAppPurchase.prototype.watchQueue = function () {
-	if (this.timer) {
-		return;
-	}
-	this.timer = window.setInterval(function () {
-        window.storekit.runQueue();
-    }, 10000);
-};
+// InAppPurchase.prototype.watchQueue = function () {
+// 	if (this.timer) {
+// 		return;
+// 	}
+// 	this.timer = window.setInterval(function () {
+//         window.storekit.runQueue();
+//     }, 10000);
+// };
 
-InAppPurchase.prototype.unWatchQueue = function () {
-	if (this.timer) {
-		window.clearInterval(this.timer);
-		this.timer = null;
-	}
-};
+// InAppPurchase.prototype.unWatchQueue = function () {
+// 	if (this.timer) {
+// 		window.clearInterval(this.timer);
+// 		this.timer = null;
+// 	}
+// };
 
-InAppPurchase.prototype.eventQueue = [];
-InAppPurchase.prototype.timer = null;
+// InAppPurchase.prototype.eventQueue = [];
+// InAppPurchase.prototype.timer = null;
 
-module.exports = new InAppPurchase();
+// module.exports = new InAppPurchase();
 
