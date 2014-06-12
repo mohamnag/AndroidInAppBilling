@@ -430,7 +430,7 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
                                  NILABLE(transactionReceipt),
                                  nil];
 		NSString *js = [NSString
-            stringWithFormat:@"window.storekit.updatedTransactionCallback.apply(window.storekit, %@)",
+            stringWithFormat:@"window.inappbilling.updatedTransactionCallback.apply(window.inappbilling, %@)",
             [callbackArgs JSONSerialize]];
 		// DLog(@"js: %@", js);
         [self.commandDelegate evalJs:js];
@@ -455,7 +455,7 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
                                 NILABLE(nil),
                                 nil];
     NSString *js = [NSString
-      stringWithFormat:@"window.storekit.updatedTransactionCallback.apply(window.storekit, %@)",
+      stringWithFormat:@"window.inappbilling.updatedTransactionCallback.apply(window.inappbilling, %@)",
       [callbackArgs JSONSerialize]];
     [self.commandDelegate evalJs:js];
 }
@@ -487,13 +487,13 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error
 {
 	NSString *js = [NSString stringWithFormat:
-      @"window.storekit.restoreCompletedTransactionsFailed(%li)", (unsigned long)jsErrorCode(error.code)];
+      @"window.inappbilling.restoreCompletedTransactionsFailed(%li)", (unsigned long)jsErrorCode(error.code)];
     [self.commandDelegate evalJs: js];
 }
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue
 {
-    NSString *js = @"window.storekit.restoreCompletedTransactionsFinished.apply(window.storekit)";
+    NSString *js = @"window.inappbilling.restoreCompletedTransactionsFinished.apply(window.inappbilling)";
     [self.commandDelegate evalJs: js];
 }
 
@@ -522,7 +522,7 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
     }
 }
 /*
-I started to implement client side receipt validation. However, this requires the inclusion of OpenSSL into the source, which is probably behong what storekit plugin should do. So I choose only to provide base64 encoded receipts to the user, then he can deal with them the way he wants...
+I started to implement client side receipt validation. However, this requires the inclusion of OpenSSL into the source, which is probably behong what inappbilling plugin should do. So I choose only to provide base64 encoded receipts to the user, then he can deal with them the way he wants...
  
 The code bellow may eventually work... it is untested
 

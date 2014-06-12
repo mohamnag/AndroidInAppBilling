@@ -8,9 +8,11 @@
 
     <name>InAppBilling</name>
     <description>
-        Use this In-app Billing plugin to sell digital goods, including 
+        Use this in-app Billing plugin to sell digital goods, including 
         one-time items and recurring subscriptions from your Cordova 
         application.
+
+        More details and full documentation can be found on: https://github.com/mohamnag/InAppBilling/wiki
     </description>
     <license>MIT License</license>
     <keywords>billing,in-app,inapp,purchase,credit</keywords>
