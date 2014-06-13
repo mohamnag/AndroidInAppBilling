@@ -1,24 +1,48 @@
 /**
- * This file implements the same JS interface for android as for iOS one but with 
- * android native code behind.
+ * In App Billing Plugin
+ * 
+ * Details and more information under: https://github.com/mohamnag/InAppBilling/wiki
+ * 
+ * This file implements a JavaScript interface for Android to the native code. 
+ * The signature of this interface has to match the one from iOS in `iso_iab.js`.
  */
+
 
 
 /**
- * Error codes returned to callback functions in different situations.
- * keep synchronized between: InAppPurchase.m, InAppBillingPlugin.java, android_iab.js and ios_iab.js
+ * Error codes.
  * 
+ * keep synchronized between: 
+ *  * InAppPurchase.m
+ *  * InAppBillingPlugin.java 
+ *  * android_iab.js 
+ *  * ios_iab.js
+ * 
+ * Be carefull assiging new codes, these are meant to express the REASON of 
+ * the error as exact as possible!
  */
-var ERROR_CODES_BASE = 4983497;
-InAppBilling.prototype.ERR_SETUP               = ERROR_CODES_BASE + 1;
-InAppBilling.prototype.ERR_LOAD                = ERROR_CODES_BASE + 2;
-InAppBilling.prototype.ERR_PURCHASE            = ERROR_CODES_BASE + 3;
-InAppBilling.prototype.ERR_LOAD_RECEIPTS       = ERROR_CODES_BASE + 4;
-InAppBilling.prototype.ERR_CLIENT_INVALID      = ERROR_CODES_BASE + 5;
-InAppBilling.prototype.ERR_PAYMENT_CANCELLED   = ERROR_CODES_BASE + 6;
-InAppBilling.prototype.ERR_PAYMENT_INVALID     = ERROR_CODES_BASE + 7;
+InAppBilling.prototype.ERROR_CODES_BASE = 4983497;
+
+InAppBilling.prototype.ERR_SETUP = ERROR_CODES_BASE + 1;
+InAppBilling.prototype.ERR_LOAD = ERROR_CODES_BASE + 2;
+InAppBilling.prototype.ERR_PURCHASE = ERROR_CODES_BASE + 3;
+InAppBilling.prototype.ERR_LOAD_RECEIPTS = ERROR_CODES_BASE + 4;
+InAppBilling.prototype.ERR_CLIENT_INVALID = ERROR_CODES_BASE + 5;
+InAppBilling.prototype.ERR_PAYMENT_CANCELLED = ERROR_CODES_BASE + 6;
+InAppBilling.prototype.ERR_PAYMENT_INVALID = ERROR_CODES_BASE + 7;
 InAppBilling.prototype.ERR_PAYMENT_NOT_ALLOWED = ERROR_CODES_BASE + 8;
-InAppBilling.prototype.ERR_UNKNOWN             = ERROR_CODES_BASE + 10;
+InAppBilling.prototype.ERR_UNKNOWN = ERROR_CODES_BASE + 10;
+InAppBilling.prototype.ERR_LOAD_INVENTORY = ERROR_CODES_BASE + 11;
+InAppBilling.prototype.ERR_HELPER_DISPOSED = ERROR_CODES_BASE + 12;
+InAppBilling.prototype.ERR_NOT_INITIALIZED = ERROR_CODES_BASE + 13;
+InAppBilling.prototype.ERR_INVENTORY_NOT_LOADED = ERROR_CODES_BASE + 14;
+InAppBilling.prototype.ERR_PURCHASE_FAILED = ERROR_CODES_BASE + 15;
+InAppBilling.prototype.ERR_JSON_CONVERSION_FAILED = ERROR_CODES_BASE + 16;
+InAppBilling.prototype.ERR_INVALID_PURCHASE_PAYLOAD = ERROR_CODES_BASE + 17;
+InAppBilling.prototype.ERR_SUBSCRIPTION_NOT_SUPPORTED = ERROR_CODES_BASE + 18;
+InAppBilling.prototype.ERR_CONSUME_NOT_OWNED_ITEM = ERROR_CODES_BASE + 19;
+InAppBilling.prototype.ERR_CONSUMPTION_FAILED = ERROR_CODES_BASE + 20;
+
 
 var InAppBilling = function () {
     this.options = {};
