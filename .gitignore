@@ -19,6 +19,12 @@ local.properties
 .classpath
 .project
 
+# netbeans files
+nbproject/
+src/build.xml
+src/manifest.mf
+
 #UE Backup Files
 *.bak
-nbproject/
+
+.*~
