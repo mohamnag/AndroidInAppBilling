@@ -27,4 +27,4 @@ src/manifest.mf
 #UE Backup Files
 *.bak
 
-.*~
+*~

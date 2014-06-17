@@ -1,20 +1,41 @@
 /**
  * In App Billing Plugin
+ * @module InAppBilling
  * 
- * Details and more information under: https://github.com/mohamnag/InAppBilling/wiki
+ * @overview This file implements a JavaScript interface for Android to the 
+ * native code. The signature of this interface has to match the one from iOS 
+ * in `iso_iab.js`.
  * 
- * This file implements a JavaScript interface for Android to the native code. 
- * The signature of this interface has to match the one from iOS in `iso_iab.js`.
+ * Details and more information on {@link module:InAppBilling}
+ * 
+ * @author Mohammad Naghavi - {@link mohamnag.com}
+ * @license MIT
  */
 
+/**
+ * All the failure callbacks have the same signature as this.
+ * 
+ * @callback errorCallback
+ * @param {Object}  error   the information about the error
+ * @param {int}     error.errorCode one of the error codes defined with ERR_*
+ * @param {string}  error.msg   a textual message intended for developer in order to make debuging easier
+ * @param {Object}  error.nativeEvent additional    information mainly intended for debug process which will not be present if the source of error is not IAB
+ * @param {int}     error.nativeEvent.IabResponse   response code coming from IabHelper
+ * @param {string}  error.nativeEvent.IabMessage    message text coming from IabHelper
+ */
+
+/**
+ * @constructor
+ * @alias module:InAppBilling
+ */
 var InAppBilling = function() {
     this.options = {};
 };
 
 /**
- * Error codes.
+ * Error codes base.
  * 
- * keep synchronized between: 
+ * all the codes bellow should be kept synchronized between: 
  *  * InAppPurchase.m
  *  * InAppBillingPlugin.java 
  *  * android_iab.js 
@@ -22,6 +43,8 @@ var InAppBilling = function() {
  * 
  * Be carefull assiging new codes, these are meant to express the REASON of 
  * the error as exact as possible!
+ * 
+ * @private
  */
 InAppBilling.prototype.ERROR_CODES_BASE = 4983497;
 
@@ -47,27 +70,35 @@ InAppBilling.prototype.ERR_CONSUMPTION_FAILED = InAppBilling.prototype.ERROR_COD
 
 /**
  * This function accepts and outputs all the logs, both from native and from JS
+ * this is intended to make the debuging easier, you only need to have access to 
+ * JS console output.
  * 
- * @param  {string} msg
+ * @param {String} msg
+ * @private
  */
 InAppBilling.prototype.log = function(msg) {
     console.log("InAppBilling[js]: " + msg);
 };
 
 /**
+ * The success callback for [init]{@link module:InAppBilling#init}.
+ * 
+ * @callback initSuccessCallback
+ */
+
+/**
  * This initiates the plugin, you can optionally pass in one or multiple 
  * product IDs for their details to be loaded during initialization.
- * 
- * @param  {function()} success
- * @param  {[type]} fail
- * @param  {[type]} options
- * @param  {[type]} productIds
- * @return {[type]}
+ *  
+ * @param {initSuccessCallback} success  the success callback
+ * @param {errorCallback} fail  the failure callback
+ * @param {Object} options  options for configuring the plugin
+ * @param {Boolean=} options.showLog    [true] wether to show logs or not, this is strongly recommended to be set to false for production
+ * @param {{(String|Array.<String>)}} productIds   an optional list of product IDs to load after initialization was successful
  */
 InAppBilling.prototype.init = function(success, fail, options, productIds) {
     options || (options = {});
 
-    //shall we remove all references to (this.) ?
     this.options = {
         showLog: options.showLog || true
     };
@@ -102,51 +133,145 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
     }
 };
 
+/**
+ * The success callback for [getPurchases]{@link module:InAppBilling#getPurchases}
+ * 
+ * @callback getPurchasesSuccessCallback
+ * @param {Array.<purchase>} purchaseList
+ */
+
+/**
+ * This will return the already boutgh items. The consumed items will not be on
+ * this list, nor can be retrieved with any other method.
+ * 
+ * @param {getPurchasesSuccessCallback} success
+ * @param {errorCallback} fail
+ */
 InAppBilling.prototype.getPurchases = function(success, fail) {
     this.log('getPurchases called!');
     return cordova.exec(success, fail, "InAppBillingPlugin", "getPurchases", ["null"]);
 };
 
+//TODO: complete this and sync it with iOS
+/**
+ * @typedef {Object} purchase
+ */
+
+/**
+ * The success callback for [buy]{@link module:InAppBilling#buy} and 
+ * [subscribe]{@link module:InAppBilling#subscribe}
+ * 
+ * @callback buySuccessCallback
+ * @param {purchase} purchase the data of purchase
+ */
+
+/**
+ * Buys an item. The product should be loaded before this call. You can either 
+ * load items at [init]{@link module:InAppBilling#init} or by calling 
+ * [getProductDetails]{@link module:InAppBilling#getProductDetails}.
+ * 
+ * @param {buySuccessCallback} success  the callback for successful purchse
+ * @param {errorCallback} fail  the callback for failed purchase
+ * @param {string} productId    the product's ID to be bought
+ */
 InAppBilling.prototype.buy = function(success, fail, productId) {
     this.log('buy called!');
     return cordova.exec(success, fail, "InAppBillingPlugin", "buy", [productId]);
 };
 
+/**
+ * Subscribes to an item. The product should be loaded before this call. 
+ * You can either load items at [init]{@link module:InAppBilling#init} or by 
+ * calling [getProductDetails]{@link module:InAppBilling#getProductDetails}.
+ * 
+ * @param {buySuccessCallback} success  callback for successful subscription
+ * @param {errorCallback} fail  callback for failed subscription
+ * @param {String} productId    id of the subscription item
+ */
 InAppBilling.prototype.subscribe = function(success, fail, productId) {
     this.log('subscribe called!');
     return cordova.exec(success, fail, "InAppBillingPlugin", "subscribe", [productId]);
 };
 
+/**
+ * This is the callback for {@link module:InAppBilling#consumePurchase}
+ * 
+ * @callback consumePurchaseSuccessCallback
+ * @param {purchase} purchase
+ */
+
+/**
+ * Consume an item. The product should be of consumable type.
+ * 
+ * @param {consumePurchaseSuccessCallback} success callback for successful consumption
+ * @param {type} fail   callback for failed consumption
+ * @param {type} productId  id of the already bought product (not the purchase itself)
+ */
 InAppBilling.prototype.consumePurchase = function(success, fail, productId) {
     this.log('consumePurchase called!');
     return cordova.exec(success, fail, "InAppBillingPlugin", "consumePurchase", [productId]);
 };
 
+//TODO: complete this struc after syncing with iOS
+/**
+ * @typedef productDetails
+ */
+
+/**
+ * The success callback for [getAvailableProducts]{@link module:InAppBilling#getAvailableProducts}.
+ * 
+ * @callback getAvailableProductsSuccessCallback
+ * @param {Array.<productDetails>} productsList
+ */
+
+/**
+ * Get all the loaded products. Products should be loaded before this call. 
+ * You can either load items at [init]{@link module:InAppBilling#init} or by 
+ * calling [getProductDetails]{@link module:InAppBilling#getProductDetails}.
+ * 
+ * @param {getAvailableProductsSuccessCallback} success callback for successful query
+ * @param {errorCallback} fail  callback for failed query
+ */
 InAppBilling.prototype.getAvailableProducts = function(success, fail) {
     this.log('getAvailableProducts called!');
     return cordova.exec(success, fail, "InAppBillingPlugin", "getAvailableProducts", ["null"]);
 };
 
-InAppBilling.prototype.getProductDetails = function(success, fail, skus) {
+/**
+ * This is the success callback for [getProductDetails]{@link module:InAppBilling#getProductDetails}.
+ * 
+ * @callback getProductDetailsSuccessCallback
+ * @param {productDetails} product
+ */
+
+/**
+ * Get details for a list of product ids. This will also load the products' 
+ * details if they are not already loaded.
+ * 
+ * @param {getProductDetailsSuccessCallback} success    callback for successful query
+ * @param {errorCallback} fail  callback for failed query
+ * @param {(String|Array.<String>)} productIds
+ */
+InAppBilling.prototype.getProductDetails = function(success, fail, productIds) {
     this.log('getProductDetails called!');
 
-    if (typeof skus === "string") {
-        skus = [skus];
+    if (typeof productIds === "string") {
+        productIds = [productIds];
     }
-    if (!skus.length) {
+    if (!productIds.length) {
         // Empty array, nothing to do.
         return;
     }
     else {
-        if (typeof skus[0] !== 'string') {
-            var msg = 'invalid productIds: ' + JSON.stringify(skus);
+        if (typeof productIds[0] !== 'string') {
+            var msg = 'invalid productIds: ' + JSON.stringify(productIds);
             this.log(msg);
             fail(msg);
             return;
         }
-        this.log('load ' + JSON.stringify(skus));
+        this.log('load ' + JSON.stringify(productIds));
 
-        return cordova.exec(success, fail, "InAppBillingPlugin", "getProductDetails", [skus]);
+        return cordova.exec(success, fail, "InAppBillingPlugin", "getProductDetails", [productIds]);
     }
 };
 

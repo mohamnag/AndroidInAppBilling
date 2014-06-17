@@ -9,7 +9,7 @@
  */
 
 
-/**
+/***
  * Error codes.
  * 
  * keep synchronized between: 
@@ -113,7 +113,7 @@ InAppBilling.prototype.init = function (success, fail, options, skus) {
     cordova.exec(setupOk, setupFailed, "InAppPurchase", 'setup', []);
 };
 
-/**
+/***
  * This will return all the receipts for already bought items.
  * 
  * @param  {[type]} success
@@ -202,7 +202,7 @@ InAppBilling.prototype.subscribe = function (success, fail, productId) {
     return InAppBilling.buy(success, fail, productId);
 };
 
-/**
+/***
  * iOS ONLY: try not to use it, however this is a must to have for iTunes.
  * Asks store to re-queue previously processed transaction.
  *
@@ -241,7 +241,7 @@ InAppBilling.prototype.restoreCompletedTransactionsFailed = function (errorCode)
     InAppBilling._restoreCallbacks = {};
 };
 
-/**
+/***
  * Retrieves localized product data, including price (as localized
  * string), name, description of multiple products.
  *
@@ -307,7 +307,7 @@ InAppBilling.prototype.getProductDetails = function (success, fail, productIds) 
     }
 };
 
-/**
+/***
  * This is called from native!
  */
 InAppBilling.prototype.updatedTransactionCallback = function (state, errorCode, errorText, transactionIdentifier, productId, transactionReceipt) {
@@ -352,7 +352,7 @@ InAppBilling.prototype.updatedTransactionCallback = function (state, errorCode, 
     }
 };
 
-/**
+/***
  * This consumes a bought product.
  * 
  * @param  {[type]} success
@@ -369,7 +369,7 @@ InAppBilling.prototype.consumePurchase = function (success, fail, productId) {
     // return cordova.exec(success, fail, "InAppBillingPlugin", "consumePurchase", [productId]);
 };
 
-/**
+/***
  * This will return the list of localized products information which are already loaded in the application.
  * 
  * @param  {[type]} success
@@ -390,7 +390,7 @@ module.exports = new InAppBilling();
 // ========= from here on, we have the original iOS JS interface. some parts are commented out 
 // ========= in favour of the new ones before.
 
-/** 
+/***
  * A plugin to enable iOS In-App Purchases.
  *
  * Copyright (c) Matt Kane 2011
