@@ -8,10 +8,13 @@
 
     <name>Multiplatform InAppBilling</name>
     <description>
-        This plugin inteds to provide unified JS API for all of the supported 
-        platforms.
+        This plugin targets in app purchasing for PlayStore in-app billing 
+        API v3 and StoreKit on iOS >= 7 providing a unified JavaScript interface 
+        in order to make it possible having one JavaScript code which works with 
+        both stores.
 
-        More details and full documentation can be found on: https://github.com/mohamnag/InAppBilling/wiki
+        Refer to wiki (https://github.com/mohamnag/InAppBilling/wiki) for 
+        introduction and instructions on using this plugin.
     </description>
     <license>MIT</license>
     <keywords>billing,in-app,inapp,purchase,credit</keywords>
