@@ -103,9 +103,11 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
         showLog: options.showLog || true
     };
 
-    if (this.options.showLog) {
-        this.log('setup ok');
+    if (!this.options.showLog) {
+        this.log = function() {};
     }
+    
+    this.log('setup ok');
 
     var hasProductIds = false;
     //Optional Load productIds to Inventory.
