@@ -121,6 +121,7 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
             if (typeof productIds[0] !== 'string') {
                 var msg = 'invalid productIds: ' + JSON.stringify(productIds);
                 this.log(msg);
+                //TODO: this does not match the errorCallback signature!    
                 fail(msg);
                 return;
             }
@@ -137,6 +138,11 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
     }
 };
 
+//TODO: complete this and sync it with iOS
+/**
+ * @typedef {Object} purchase
+ */
+ 
 /**
  * The success callback for [getPurchases]{@link module:InAppBilling#getPurchases}
  * 
@@ -155,11 +161,6 @@ InAppBilling.prototype.getPurchases = function(success, fail) {
     this.log('getPurchases called!');
     return cordova.exec(success, fail, "InAppBillingPlugin", "getPurchases", ["null"]);
 };
-
-//TODO: complete this and sync it with iOS
-/**
- * @typedef {Object} purchase
- */
 
 /**
  * The success callback for [buy]{@link module:InAppBilling#buy} and 

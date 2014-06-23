@@ -22,17 +22,16 @@
 @property (nonatomic,retain) NSMutableDictionary *list;
 @property (nonatomic,retain) NSMutableDictionary *retainer;
 
-- (void) setup: (CDVInvokedUrlCommand*)command;
+- (void) init: (CDVInvokedUrlCommand*)command;
+- (void) getPurchases: (CDVInvokedUrlCommand*)command;
+
+
 - (void) load: (CDVInvokedUrlCommand*)command;
 - (void) purchase: (CDVInvokedUrlCommand*)command;
-- (void) appStoreReceipt: (CDVInvokedUrlCommand*)command;
-
 - (void) paymentQueue:(SKPaymentQueue *)queue updatedTransactions:(NSArray *)transactions;
 - (void) paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error;
 - (void) paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue;
 
-- (void) debug: (CDVInvokedUrlCommand*)command;
-- (void) noAutoFinish: (CDVInvokedUrlCommand*)command;
 - (void) finishTransaction: (CDVInvokedUrlCommand*)command;
 
 @end

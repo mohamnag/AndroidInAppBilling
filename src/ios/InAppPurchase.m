@@ -10,28 +10,72 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+/**
+ * Error codes base.
+ * 
+ * all the codes bellow should be kept synchronized between: 
+ *  * InAppPurchase.m
+ *  * InAppBillingPlugin.java 
+ *  * android_iab.js 
+ *  * ios_iab.js
+ * 
+ * Be carefull assiging new codes, these are meant to express the REASON of 
+ * the error as exact as possible!
+ * 
+ * @private
+ */
+#define ERROR_CODES_BASE          4983497
+#define ERR_SETUP                 (ERROR_CODES_BASE + 1)
+#define ERR_LOAD                  (ERROR_CODES_BASE + 2)
+#define ERR_PURCHASE              (ERROR_CODES_BASE + 3)
+#define ERR_LOAD_RECEIPTS         (ERROR_CODES_BASE + 4)
+#define ERR_CLIENT_INVALID        (ERROR_CODES_BASE + 5)
+#define ERR_PAYMENT_CANCELLED     (ERROR_CODES_BASE + 6)
+#define ERR_PAYMENT_INVALID       (ERROR_CODES_BASE + 7)
+#define ERR_PAYMENT_NOT_ALLOWED   (ERROR_CODES_BASE + 8)
+#define ERR_UNKNOWN               (ERROR_CODES_BASE + 10)
+
+
+#define ERR_LOAD_INVENTORY              (ERROR_CODES_BASE + 11)
+#define ERR_HELPER_DISPOSED             (ERROR_CODES_BASE + 12)
+#define ERR_NOT_INITIALIZED             (ERROR_CODES_BASE + 13)
+#define ERR_INVENTORY_NOT_LOADED        (ERROR_CODES_BASE + 14)
+#define ERR_PURCHASE_FAILED             (ERROR_CODES_BASE + 15)
+#define ERR_JSON_CONVERSION_FAILED      (ERROR_CODES_BASE + 16)
+#define ERR_INVALID_PURCHASE_PAYLOAD    (ERROR_CODES_BASE + 17)
+#define ERR_SUBSCRIPTION_NOT_SUPPORTED  (ERROR_CODES_BASE + 18)
+#define ERR_CONSUME_NOT_OWNED_ITEM      (ERROR_CODES_BASE + 19)
+#define ERR_CONSUMPTION_FAILED          (ERROR_CODES_BASE + 20)
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////// TO BE REVIEWED! ->
+
 // Help create NSNull objects for nil items (since neither NSArray nor NSDictionary can store nil values).
 #define NILABLE(obj) ((obj) != nil ? (NSObject *)(obj) : (NSObject *)[NSNull null])
 
-static BOOL g_debugEnabled = NO;
+// TODO: apply it to jsLog (later!) not to send logs if this is disabled
+// TODO: at best this is an argument in init!
+static BOOL g_debugEnabled = YES;
+
+// We set this permanently to yes in order to match the functionality of android
 static BOOL g_autoFinishEnabled = YES;
 
+//TODO: remove!
 #define DLog(fmt, ...) { \
     if (g_debugEnabled) \
         NSLog((@"InAppPurchase[objc]: " fmt), ##__VA_ARGS__); \
 }
-
-#define ERROR_CODES_BASE 4983497
-#define ERR_SETUP         (ERROR_CODES_BASE + 1)
-#define ERR_LOAD          (ERROR_CODES_BASE + 2)
-#define ERR_PURCHASE      (ERROR_CODES_BASE + 3)
-#define ERR_LOAD_RECEIPTS (ERROR_CODES_BASE + 4)
-
-#define ERR_CLIENT_INVALID    (ERROR_CODES_BASE + 5)
-#define ERR_PAYMENT_CANCELLED (ERROR_CODES_BASE + 6)
-#define ERR_PAYMENT_INVALID   (ERROR_CODES_BASE + 7)
-#define ERR_PAYMENT_NOT_ALLOWED (ERROR_CODES_BASE + 8)
-#define ERR_UNKNOWN (ERROR_CODES_BASE + 10)
 
 static NSInteger jsErrorCode(NSInteger storeKitErrorCode)
 {
@@ -64,152 +108,6 @@ static NSString *jsErrorCodeAsString(NSInteger code) {
     }
     return @"ERR_NONE";
 }
-
-/*
-
-const static char* b64="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" ;
-
-// maps A=>0,B=>1..
-const static unsigned char unb64[]={
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //10 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //20 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //30 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //40 
-  0,   0,   0,  62,   0,   0,   0,  63,  52,  53, //50 
- 54,  55,  56,  57,  58,  59,  60,  61,   0,   0, //60 
-  0,   0,   0,   0,   0,   0,   1,   2,   3,   4, //70 
-  5,   6,   7,   8,   9,  10,  11,  12,  13,  14, //80 
- 15,  16,  17,  18,  19,  20,  21,  22,  23,  24, //90 
- 25,   0,   0,   0,   0,   0,   0,  26,  27,  28, //100 
- 29,  30,  31,  32,  33,  34,  35,  36,  37,  38, //110 
- 39,  40,  41,  42,  43,  44,  45,  46,  47,  48, //120 
- 49,  50,  51,   0,   0,   0,   0,   0,   0,   0, //130 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //140 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //150 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //160 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //170 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //180 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //190 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //200 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //210 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //220 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //230 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //240 
-  0,   0,   0,   0,   0,   0,   0,   0,   0,   0, //250 
-  0,   0,   0,   0,   0,   0, 
-}; // This array has 255 elements
-
-// Converts binary data of length=len to base64 characters.
-// Length of the resultant string is stored in flen
-// (you must pass pointer flen).
-char* base64(const void* binaryData, int len, int *flen)
-{
-  const unsigned char* bin = (const unsigned char*) binaryData ;
-  char* res ;
-  
-  int rc = 0 ; // result counter
-  int byteNo ; // I need this after the loop
-  
-  int modulusLen = len % 3 ;
-  int pad = ((modulusLen&1)<<1) + ((modulusLen&2)>>1) ; // 2 gives 1 and 1 gives 2, but 0 gives 0.
-  
-  *flen = 4*(len + pad)/3 ;
-  res = (char*) malloc( *flen + 1 ) ; // and one for the null
-  if( !res )
-  {
-    puts( "ERROR: base64 could not allocate enough memory." ) ;
-    puts( "I must stop because I could not get enough" ) ;
-    return 0;
-  }
-  
-  for( byteNo = 0 ; byteNo <= len-3 ; byteNo+=3 )
-  {
-    unsigned char BYTE0=bin[byteNo];
-    unsigned char BYTE1=bin[byteNo+1];
-    unsigned char BYTE2=bin[byteNo+2];
-    res[rc++]  = b64[ BYTE0 >> 2 ] ;
-    res[rc++]  = b64[ ((0x3&BYTE0)<<4) + (BYTE1 >> 4) ] ;
-    res[rc++]  = b64[ ((0x0f&BYTE1)<<2) + (BYTE2>>6) ] ;
-    res[rc++]  = b64[ 0x3f&BYTE2 ] ;
-  }
-  
-  if( pad==2 )
-  {
-    res[rc++] = b64[ bin[byteNo] >> 2 ] ;
-    res[rc++] = b64[ (0x3&bin[byteNo])<<4 ] ;
-    res[rc++] = '=';
-    res[rc++] = '=';
-  }
-  else if( pad==1 )
-  {
-    res[rc++]  = b64[ bin[byteNo] >> 2 ] ;
-    res[rc++]  = b64[ ((0x3&bin[byteNo])<<4)   +   (bin[byteNo+1] >> 4) ] ;
-    res[rc++]  = b64[ (0x0f&bin[byteNo+1])<<2 ] ;
-    res[rc++] = '=';
-  }
-  
-  res[rc] = 0; // NULL TERMINATOR! ;)
-  return res ;
-}
-
-unsigned char* unbase64( const char* ascii, int len, int *flen )
-{
-  const unsigned char *safeAsciiPtr = (const unsigned char*)ascii ;
-  unsigned char *bin ;
-  int cb=0;
-  int charNo;
-  int pad = 0 ;
-
-  if( len < 2 ) { // 2 accesses below would be OOB.
-    // catch empty string, return NULL as result.
-    puts( "ERROR: You passed an invalid base64 string (too short). You get NULL back." ) ;
-    *flen=0;
-    return 0 ;
-  }
-  if( safeAsciiPtr[ len-1 ]=='=' )  ++pad ;
-  if( safeAsciiPtr[ len-2 ]=='=' )  ++pad ;
-  
-  *flen = 3*len/4 - pad ;
-  bin = (unsigned char*)malloc( *flen ) ;
-  if( !bin )
-  {
-    puts( "ERROR: unbase64 could not allocate enough memory." ) ;
-    puts( "I must stop because I could not get enough" ) ;
-    return 0;
-  }
-  
-  for( charNo=0; charNo <= len - 4 - pad ; charNo+=4 )
-  {
-    int A=unb64[safeAsciiPtr[charNo]];
-    int B=unb64[safeAsciiPtr[charNo+1]];
-    int C=unb64[safeAsciiPtr[charNo+2]];
-    int D=unb64[safeAsciiPtr[charNo+3]];
-    
-    bin[cb++] = (A<<2) | (B>>4) ;
-    bin[cb++] = (B<<4) | (C>>2) ;
-    bin[cb++] = (C<<6) | (D) ;
-  }
-  
-  if( pad==1 )
-  {
-    int A=unb64[safeAsciiPtr[charNo]];
-    int B=unb64[safeAsciiPtr[charNo+1]];
-    int C=unb64[safeAsciiPtr[charNo+2]];
-    
-    bin[cb++] = (A<<2) | (B>>4) ;
-    bin[cb++] = (B<<4) | (C>>2) ;
-  }
-  else if( pad==2 )
-  {
-    int A=unb64[safeAsciiPtr[charNo]];
-    int B=unb64[safeAsciiPtr[charNo+1]];
-    
-    bin[cb++] = (A<<2) | (B>>4) ;
-  }
-  
-  return bin;
-}
-*/
 
 // To avoid compilation warning, declare JSONKit and SBJson's
 // category methods without including their header files.
@@ -270,35 +168,116 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
 }
 @end
 
+/////////////////////// <- TO BE REVIEWED!
+
+
+
+
+
+
 @implementation InAppPurchase
 @synthesize list;
 @synthesize retainer;
 
--(void) debug: (CDVInvokedUrlCommand*)command {
-    g_debugEnabled = YES;
+// redirect all logs to JS for better visibility
+-(void) jsLog: (NSString*)msg {
+  [self writeJavascript:[NSString stringWithFormat:@"window.inappbilling.log('[ios] %@')", msg]];
 }
 
--(void) noAutoFinish: (CDVInvokedUrlCommand*)command {
-    g_autoFinishEnabled = NO;
+// this will create the necessary structures and call the error callback
+-(void) sendError:(NSNumber*)errorCode withMsg:(NSString*)msg withNativeEvent:(NSDictionary*)nativeEvent forCommand:(CDVInvokedUrlCommand*)command {
+  NSMutableDictionary* errorObject = [NSMutableDictionary dictionaryWithCapacity:3];
+
+  [errorObject setObject:errorCode forKey:@"errorCode"];
+  [errorObject setObject:msg forKey:@"msg"];
+  [errorObject setObject:NILABLE(nativeEvent) forKey:@"nativeEvent"];
+
+  NSDictionary* error = [NSDictionary dictionaryWithDictionary:errorObject];
+
+  CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:error];
+  [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
--(void) setup: (CDVInvokedUrlCommand*)command {
-    CDVPluginResult* pluginResult = nil;
+// this initiates the plugin
+// TODO: get an optional list of productIds and pass it further to be loaded
+-(void) init: (CDVInvokedUrlCommand*)command {
+    [self jsLog:@"init called"];
 
     if (![SKPaymentQueue canMakePayments]) {
-        DLog(@"Cant make payments, plugin disabled.");
-        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Can't make payments"];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-        return;
+      [self jsLog:@"Cant make payments, init failed"];
+
+      [self sendError:[NSNumber numberWithInt:ERR_SETUP] 
+        withMsg:@"Can not make payment according to payment queue" withNativeEvent:nil forCommand:command];
+    }
+    else {
+      self.list = [[NSMutableDictionary alloc] init];
+      self.retainer = [[NSMutableDictionary alloc] init];
+      unfinishedTransactions = [[NSMutableDictionary alloc] init];
+      [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+
+      [self jsLog:@"InAppBilling initialized successfully"];
+
+      CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+      [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];      
     }
 
-    self.list = [[NSMutableDictionary alloc] init];
-    self.retainer = [[NSMutableDictionary alloc] init];
-    unfinishedTransactions = [[NSMutableDictionary alloc] init];
-    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
-    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"InAppPurchase initialized"];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
+
+// this is renamed from original appStoreReceipt, I'm not sure if that provides the type of data we want for getPurchases.
+- (void) getPurchases: (CDVInvokedUrlCommand*)command {
+    [self jsLog:@"init called"];
+
+    NSString *base64 = nil;
+    NSData *receiptData = [self appStoreReceipt];
+    if (receiptData != nil) {
+        [self jsLog:@"receipt retrieved successfully!"];
+        base64 = [receiptData convertToBase64];
+
+        // TODO: this structure shall be synced with android for the type (in JS) InAppBilling.purchase
+        CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                          messageAsString:base64];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }
+    else {
+      [self sendError:[NSNumber numberWithInt:ERR_LOAD_RECEIPTS]
+        withMsg:@"Failed loading receipts" withNativeEvent:nil forCommand:command];
+    }
+}
+
+- (NSData *)appStoreReceipt
+{
+    NSURL *receiptURL = nil;
+    NSBundle *bundle = [NSBundle mainBundle];
+    if ([bundle respondsToSelector:@selector(appStoreReceiptURL)]) {
+        // The general best practice of weak linking using the respondsToSelector: method
+        // cannot be used here. Prior to iOS 7, the method was implemented as private SPI,
+        // but that implementation called the doesNotRecognizeSelector: method.
+        if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_6_1) {
+            receiptURL = [bundle performSelector:@selector(appStoreReceiptURL)];
+        }
+    }
+
+    if (receiptURL != nil) {
+        NSData *receiptData = [NSData dataWithContentsOfURL:receiptURL];
+#if ARC_DISABLED
+        [receiptData autorelease];
+#endif
+        return receiptData;
+    }
+    else {
+        return nil;
+    }
+}
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Request product data for the given productIds.
@@ -497,30 +476,7 @@ unsigned char* unbase64( const char* ascii, int len, int *flen )
     [self.commandDelegate evalJs: js];
 }
 
-- (NSData *)appStoreReceipt
-{
-    NSURL *receiptURL = nil;
-    NSBundle *bundle = [NSBundle mainBundle];
-    if ([bundle respondsToSelector:@selector(appStoreReceiptURL)]) {
-        // The general best practice of weak linking using the respondsToSelector: method
-        // cannot be used here. Prior to iOS 7, the method was implemented as private SPI,
-        // but that implementation called the doesNotRecognizeSelector: method.
-        if (floor(NSFoundationVersionNumber) > NSFoundationVersionNumber_iOS_6_1) {
-            receiptURL = [bundle performSelector:@selector(appStoreReceiptURL)];
-        }
-    }
 
-    if (receiptURL != nil) {
-        NSData *receiptData = [NSData dataWithContentsOfURL:receiptURL];
-#if ARC_DISABLED
-        [receiptData autorelease];
-#endif
-        return receiptData;
-    }
-    else {
-        return nil;
-    }
-}
 /*
 I started to implement client side receipt validation. However, this requires the inclusion of OpenSSL into the source, which is probably behong what inappbilling plugin should do. So I choose only to provide base64 encoded receipts to the user, then he can deal with them the way he wants...
  
@@ -575,18 +531,6 @@ static NSString *rootAppleCA = @"MIIEuzCCA6OgAwIBAgIBAjANBgkqhkiG9w0BAQUFADBiMQs
 }
 */
 
-- (void) appStoreReceipt: (CDVInvokedUrlCommand*)command {
-
-    NSString *base64 = nil;
-    NSData *receiptData = [self appStoreReceipt];
-    if (receiptData != nil) {
-        base64 = [receiptData convertToBase64];
-        // DLog(@"base64 receipt: %@", base64);
-    }
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                      messageAsString:base64];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-}
 
 - (void) dispose {
     self.retainer = nil;
