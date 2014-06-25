@@ -86,6 +86,7 @@ InAppBilling.prototype.log = function(msg) {
  * The success callback for [init]{@link module:InAppBilling#init}.
  * 
  * @callback initSuccessCallback
+ * @param {string} result  the result passed by cordova, should be always 'OK'
  */
 
 /**
