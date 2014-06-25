@@ -86,7 +86,7 @@ InAppBilling.prototype.log = function(msg) {
  * The success callback for [init]{@link module:InAppBilling#init}.
  * 
  * @callback initSuccessCallback
- * @param {string} result  the result passed by cordova, should be always 'OK'
+ * @param {Array.<ProductDetails>} products
  */
 
 /**
@@ -224,16 +224,22 @@ InAppBilling.prototype.consumePurchase = function(success, fail, productId) {
     return cordova.exec(success, fail, "InAppBillingPlugin", "consumePurchase", [productId]);
 };
 
-//TODO: complete this struc after syncing with iOS
 /**
- * @typedef productDetails
+ * @typedef ProductDetails
+ * @property {string} id the product id
+ * @property {string} type type of product, possible values: inapp, subscription
+ * @property {string} price the formatted localized price
+ * @property {int} priceMicros the price in micro amount (2$ ~> 2000000)
+ * @property {string} currencyCode the currency code used for localized price
+ * @property {string} title humanreadable title of product
+ * @property {string} description description of product
  */
 
 /**
  * The success callback for [getAvailableProducts]{@link module:InAppBilling#getAvailableProducts}.
  * 
  * @callback getAvailableProductsSuccessCallback
- * @param {Array.<productDetails>} productsList
+ * @param {Array.<ProductDetails>} products
  */
 
 /**
@@ -257,7 +263,7 @@ InAppBilling.prototype.getAvailableProducts = function(success, fail) {
  * Invalid products will not be on this list.
  * 
  * @callback getProductDetailsSuccessCallback
- * @param {Array.<productDetails>} products
+ * @param {Array.<ProductDetails>} products
  */
 
 /**
