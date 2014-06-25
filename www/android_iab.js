@@ -104,10 +104,13 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
     this.options = {
         showLog: options.showLog || false
     };
-    
+        
     // show log or mute the log
     //TODO: this shall mute logs on native too
-    if (!this.options.showLog) {
+    if (this.options.showLog === true) {
+        this.log = InAppBilling.prototype.log;
+    }
+    else {
         this.log = noop;
     }
 
