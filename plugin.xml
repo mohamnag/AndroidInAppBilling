@@ -26,13 +26,13 @@
 	
     <!-- ios -->
     <platform name="ios">
-        <js-module src="www/ios_iab.js" name="InAppBilling">
+        <js-module src="www/inappbilling.js" name="InAppBilling">
             <clobbers target="inappbilling" />
         </js-module>
                             
         <!-- Cordova 2.5+ -->
         <config-file target="config.xml" parent="/*">
-            <feature name="InAppPurchase">
+            <feature name="InAppBillingPlugin">
                 <param name="ios-package" value="InAppPurchase"/>
             </feature>
         </config-file>
@@ -47,7 +47,7 @@
 
     <!-- android -->
     <platform name="android">
-        <js-module src="www/android_iab.js" name="InAppBilling">
+        <js-module src="www/inappbilling.js" name="InAppBilling">
             <clobbers target="inappbilling" />
         </js-module>
 

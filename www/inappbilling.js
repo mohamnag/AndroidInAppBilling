@@ -2,9 +2,8 @@
  * In App Billing Plugin
  * @module InAppBilling
  * 
- * @overview This file implements a JavaScript interface for Android to the 
- * native code. The signature of this interface has to match the one from iOS 
- * in `iso_iab.js`.
+ * @overview This file implements a JavaScript interface for both Android and iOS
+ * to the native code.
  * 
  * Details and more information on {@link module:InAppBilling}
  * 
@@ -166,6 +165,7 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
     }
 };
 
+//TODO: check this structure in iOS native code
 /**
  * @typedef Purchase
  * @property {string} id populated with orderId (when on PlayStore) or transactionIdentifier (when on iTunes)
@@ -182,7 +182,7 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
  * @param {Array.<Purchase>} purchaseList
  */
 
-//TODO: check the order of purchases retuned in native!
+//TODO: check the order of purchases retuned in iOS and android native!
 /**
  * This will return bought products in a chronological order (oldest first)
  * that are not cunsumed or the subscriptions that are not expired. Following 
@@ -221,6 +221,8 @@ InAppBilling.prototype.getPurchases = function(success, fail) {
  */
 InAppBilling.prototype.buy = function(success, fail, productId) {
     this.log('buy called!');
+    
+    // TODO: verify the return values to success in iOS native
     return cordova.exec(success, fail, "InAppBillingPlugin", "buy", [productId]);
 };
 
@@ -267,9 +269,21 @@ InAppBilling.prototype.restore = function(success, fail) {
 InAppBilling.prototype.consumeProduct = function(success, fail, productId) {
     this.log('consumeProduct called!');
 
+    //TODO: implement it for iOS!
     return cordova.exec(success, fail, "InAppBillingPlugin", "consumeProduct", [productId]);
 };
 
+/* 
+ TODO: sync this with final struc
+ 
+ on iOS:
+ {
+ id: "<productId>",
+ title: "<localised title>",
+ description: "<localised escription>",
+ price: "<localised price>"
+ }
+ */
 /**
  * @typedef ProductDetails
  * @property {string} id the product id
@@ -299,6 +313,7 @@ InAppBilling.prototype.consumeProduct = function(success, fail, productId) {
 InAppBilling.prototype.getLoadedProducts = function(success, fail) {
     this.log('getLoadedProducts called!');
 
+    //TODO: implement this for iOS!
     return cordova.exec(success, fail, "InAppBillingPlugin", "getLoadedProducts", ["null"]);
 };
 
@@ -363,7 +378,7 @@ InAppBilling.prototype.loadProductDetails = function(success, fail, productIds) 
 InAppBilling.prototype.getVerificationPayload = function(success, fail, purchaseId) {
     this.log('loadProductDetails called!');
 
-    // TODO: to be implemented!    
+    // TODO: to be implemented in both iOS and android!
 };
 
 module.exports = new InAppBilling();
