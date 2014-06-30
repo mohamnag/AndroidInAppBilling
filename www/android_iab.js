@@ -69,11 +69,23 @@ InAppBilling.prototype.ERR_INVALID_PURCHASE_PAYLOAD = ERROR_CODES_BASE + 17;
 InAppBilling.prototype.ERR_SUBSCRIPTION_NOT_SUPPORTED = ERROR_CODES_BASE + 18;
 InAppBilling.prototype.ERR_CONSUME_NOT_OWNED_ITEM = ERROR_CODES_BASE + 19;
 InAppBilling.prototype.ERR_CONSUMPTION_FAILED = ERROR_CODES_BASE + 20;
-// the prduct to be bought is not loaded
+/**
+ * the prduct to be bought is not loaded
+ * 
+ * @type @exp;ERROR_CODES_BASE|Number
+ */
 InAppBilling.prototype.ERR_PRODUCT_NOT_LOADED = ERROR_CODES_BASE + 21;
-// invalid product id passed
+/**
+ * invalid product id passed
+ * 
+ * @type @exp;ERROR_CODES_BASE|Number
+ */
 InAppBilling.prototype.ERR_INVALID_PRODUCT_ID = ERROR_CODES_BASE + 22;
-// invalid purchase id passed
+/**
+ * invalid purchase id passed
+ * 
+ * @type @exp;ERROR_CODES_BASE|Number
+ */
 InAppBilling.prototype.ERR_INVALID_PURCHASE_ID = ERROR_CODES_BASE + 23;
 
 /**
@@ -134,8 +146,11 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
             if (typeof productIds[0] !== 'string') {
                 var msg = 'invalid productIds: ' + JSON.stringify(productIds);
                 this.log(msg);
-                //TODO: this does not match the errorCallback signature!    
-                fail(msg);
+                fail({
+                    errorCode: this.ERR_INVALID_PRODUCT_ID,
+                    msg: msg,
+                    nativeEvent: {}
+                });
                 return;
             }
             this.log('load ' + JSON.stringify(productIds));
@@ -167,6 +182,7 @@ InAppBilling.prototype.init = function(success, fail, options, productIds) {
  * @param {Array.<Purchase>} purchaseList
  */
 
+//TODO: check the order of purchases retuned in native!
 /**
  * This will return bought products in a chronological order (oldest first)
  * that are not cunsumed or the subscriptions that are not expired. Following 
@@ -209,7 +225,33 @@ InAppBilling.prototype.buy = function(success, fail, productId) {
 };
 
 /**
- * This is the callback for {@link module:InAppBilling#consumeProduct}
+ * The success callback for [restore]{@link module:InAppBilling#restore}.
+ * This is only available on iOS.
+ * 
+ * @callback restoreSuccessCallback
+ * @param {Array.<Purchase>} purchases the data of purchase
+ */
+
+/**
+ * on iOS:
+ * Asks store to re-queue previously processed transactions. Use this with caution 
+ * and don't call it again until you get the callback either on success or on
+ * failure.
+ * 
+ * on Android:
+ * This will do the same as [getPurchases]{@link module:InAppBilling#getPurchases}
+ * 
+ * @param  {restoreSuccessCallback} success
+ * @param  {errorCallback} fail
+ */
+InAppBilling.prototype.restore = function(success, fail) {
+    this.log('restore called!');
+
+    cordova.exec(success, fail, "InAppBillingPlugin", 'restoreCompletedTransactions', []);
+};
+
+/**
+ * This is the callback for [consumeProduct]{@link module:InAppBilling#consumeProduct}
  * 
  * @callback consumeProductSuccessCallback
  * @param {Purchase} purchase
@@ -224,6 +266,7 @@ InAppBilling.prototype.buy = function(success, fail, productId) {
  */
 InAppBilling.prototype.consumeProduct = function(success, fail, productId) {
     this.log('consumeProduct called!');
+
     return cordova.exec(success, fail, "InAppBillingPlugin", "consumeProduct", [productId]);
 };
 
@@ -255,6 +298,7 @@ InAppBilling.prototype.consumeProduct = function(success, fail, productId) {
  */
 InAppBilling.prototype.getLoadedProducts = function(success, fail) {
     this.log('getLoadedProducts called!');
+
     return cordova.exec(success, fail, "InAppBillingPlugin", "getLoadedProducts", ["null"]);
 };
 
@@ -294,8 +338,11 @@ InAppBilling.prototype.loadProductDetails = function(success, fail, productIds) 
         if (typeof productIds[0] !== 'string') {
             var msg = 'invalid productIds: ' + JSON.stringify(productIds);
             this.log(msg);
-            // TODO: this does not comply to our errorCallback signature
-            fail(msg);
+            fail({
+                errorCode: this.ERR_INVALID_PRODUCT_ID,
+                msg: msg,
+                nativeEvent: {}
+            });
             return;
         }
         this.log('load ' + JSON.stringify(productIds));
@@ -306,8 +353,8 @@ InAppBilling.prototype.loadProductDetails = function(success, fail, productIds) 
 
 /**
  * This will return a verification payload for one purchase. Depending on the 
- * platform it means either the `purchaseToken` or the application `receipt` on
- * PlayStore and iTunes respectively.
+ * platform it means either the `purchaseToken` of one single purchase (on 
+ * PlayStore) or the application `receipt` (on iTunes).
  * 
  * @param {type} success
  * @param {type} fail
@@ -315,7 +362,7 @@ InAppBilling.prototype.loadProductDetails = function(success, fail, productIds) 
  */
 InAppBilling.prototype.getVerificationPayload = function(success, fail, purchaseId) {
     this.log('loadProductDetails called!');
-    
+
     // TODO: to be implemented!    
 };
 
