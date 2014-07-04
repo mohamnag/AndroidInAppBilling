@@ -26,6 +26,7 @@
  * @private
  */
 #define ERROR_CODES_BASE          4983497
+#define ERR_NO_ERROR              (ERROR_CODES_BASE)
 #define ERR_SETUP                 (ERROR_CODES_BASE + 1)
 #define ERR_LOAD                  (ERROR_CODES_BASE + 2)
 #define ERR_PURCHASE              (ERROR_CODES_BASE + 3)
@@ -51,6 +52,10 @@
 #define ERR_PRODUCT_NOT_LOADED          (ERROR_CODES_BASE + 21)
 // invalid product ids passed
 #define ERR_INVALID_PRODUCT_ID          (ERROR_CODES_BASE + 22)
+// invalid purchase id passed
+#define ERR_INVALID_PURCHASE_ID         (ERROR_CODES_BASE + 23)
+// item requested to be bought is already owned
+#define ERR_PURCHASE_OWNED_ITEM         (ERROR_CODES_BASE + 24)
 
 
 
